@@ -14,8 +14,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 func main() {
@@ -24,22 +22,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Инициализация Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	})
-
-	// Проверка подключения к Redis
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if _, err := redisClient.Ping(ctx).Result(); err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-
-	verificationRepo := repository.NewRedisVerificationRepository(redisClient)
+	// Используем memory repository вместо Redis
+	verificationRepo := repository.NewMemoryVerificationRepository()
 
 	// Инициализация email сервиса
 	emailSender, err := email.NewElasticEmailSender(
