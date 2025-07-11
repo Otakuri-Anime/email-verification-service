@@ -31,13 +31,23 @@ func (s *ElasticEmailSender) SendVerificationEmail(
 	subject := "Your Verification Code"
 	body := fmt.Sprintf("Your verification code is: %s", code)
 
-	requestBody := map[string]string{
-		"apikey":          s.apiKey,
-		"from":            s.fromEmail,
-		"to":              toEmail,
-		"subject":         subject,
-		"bodyText":        body,
-		"isTransactional": "true",
+	requestBody := map[string]interface{}{
+		"Recipients": map[string][]string{
+			"To": {toEmail},
+		},
+		"Content": map[string]interface{}{
+			"From":    s.fromEmail,
+			"Subject": subject,
+			"Body": []map[string]string{
+				{
+					"ContentType": "PlainText",
+					"Content":     body,
+				},
+			},
+		},
+		"Options": map[string]interface{}{
+			"Transactional": true,
+		},
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -46,21 +56,25 @@ func (s *ElasticEmailSender) SendVerificationEmail(
 		return err
 	}
 
-	// Логируем сам запрос (без API ключа)
-	log.Printf("Sending email to: %s\nRequest: %+v", toEmail, map[string]string{
-		"from":    s.fromEmail,
-		"to":      toEmail,
-		"subject": subject,
-	})
+	log.Printf("Request payload: %s", string(jsonData))
 
-	resp, err := http.Post(s.endpoint, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", s.endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("Email request creation error: %v", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-ElasticEmail-ApiKey", s.apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Email send HTTP error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Читаем полный ответ
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	log.Printf("ElasticEmail API response:\nStatus: %d\nBody: %s", resp.StatusCode, string(bodyBytes))
 
