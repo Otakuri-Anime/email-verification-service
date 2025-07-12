@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Подтверждение email</title>
+    <style type="text/css">
+      /* Основные стили */
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        background-color: #ffffff;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        color: #e7176c;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      .title {
+        text-align: center;
+        font-size: 16px;
+        color: #333333;
+      }
+      .code-container {
+        background-color: #f5f5f5;
+        border-radius: 16px;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+        color: #e7176c;
+      }
+      .cta {
+        text-align: center;
+        font-size: 16px;
+        color: #333333;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 12px;
+        color: #777777;
+      }
+      .sub-footer {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 14px;
+        color: #777777;
+      }
+      .highlight {
+        color: #e7176c;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="header">Подтверждение регистрации</h1>
+      <p class="title">
+        Привет, это <span class="highlight">Otakuri</span> 🩷, мы тут тебе код
+        подтверждения прислали для завершение регистрации (>ᴗ•)
+      </p>
+      <div class="code-container">{{.Code}}</div>
+      <p class="cta">
+        Введи его быстрее, чем Гон ловит рыбку 🐟 !<br />
+        <span class="sub-footer"
+          >(Код истекает через
+          <span class="highlight">{{.ExpiryMinutes}}</span> минут!)</span
+        >
+      </p>
+      <div class="footer">
+        <p>
+          Если вы не запрашивали это письмо, пожалуйста, проигнорируйте его.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

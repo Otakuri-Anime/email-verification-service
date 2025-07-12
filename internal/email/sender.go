@@ -3,33 +3,57 @@ package email
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
 )
 
+//go:embed template.html
+var templateFS embed.FS
+
 type ElasticEmailSender struct {
-	apiKey    string
-	fromEmail string
-	endpoint  string
+	apiKey        string
+	fromEmail     string
+	endpoint      string
+	emailTmpl     *template.Template
+	expiryMinutes int
 }
 
-func NewElasticEmailSender(apiKey, fromEmail, endpoint string) (*ElasticEmailSender, error) {
+func NewElasticEmailSender(apiKey, fromEmail, endpoint string, expiryMinutes int) (*ElasticEmailSender, error) {
+	// Загружаем шаблон
+	tmplContent, err := templateFS.ReadFile("template.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template: %w", err)
+	}
+
+	tmpl, err := template.New("email").Parse(string(tmplContent))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template: %w", err)
+	}
+
 	return &ElasticEmailSender{
-		apiKey:    apiKey,
-		fromEmail: fromEmail,
-		endpoint:  endpoint,
+		apiKey:        apiKey,
+		fromEmail:     fromEmail,
+		endpoint:      endpoint,
+		emailTmpl:     tmpl,
+		expiryMinutes: expiryMinutes,
 	}, nil
 }
 
-func (s *ElasticEmailSender) SendVerificationEmail(
-	ctx context.Context,
-	toEmail, code string,
-) error {
-	subject := "Your Verification Code"
-	body := fmt.Sprintf("Your verification code is: %s", code)
+func (s *ElasticEmailSender) SendVerificationEmail(ctx context.Context, toEmail, code string) error {
+	// Генерируем HTML из шаблона
+	var body bytes.Buffer
+	err := s.emailTmpl.Execute(&body, TemplateData{
+		Code:          code,
+		ExpiryMinutes: s.expiryMinutes,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
 
 	requestBody := map[string]interface{}{
 		"Recipients": map[string][]string{
@@ -37,11 +61,11 @@ func (s *ElasticEmailSender) SendVerificationEmail(
 		},
 		"Content": map[string]interface{}{
 			"From":    s.fromEmail,
-			"Subject": subject,
+			"Subject": "Твой код подтверждения",
 			"Body": []map[string]string{
 				{
-					"ContentType": "PlainText",
-					"Content":     body,
+					"ContentType": "HTML",
+					"Content":     body.String(),
 				},
 			},
 		},
@@ -50,13 +74,12 @@ func (s *ElasticEmailSender) SendVerificationEmail(
 		},
 	}
 
+	// Остальная часть функции остается без изменений
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		log.Printf("Email JSON marshal error: %v", err)
 		return err
 	}
-
-	log.Printf("Request payload: %s", string(jsonData))
 
 	req, err := http.NewRequest("POST", s.endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -75,10 +98,8 @@ func (s *ElasticEmailSender) SendVerificationEmail(
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	log.Printf("ElasticEmail API response:\nStatus: %d\nBody: %s", resp.StatusCode, string(bodyBytes))
-
 	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("API error: %s", string(bodyBytes))
 	}
 

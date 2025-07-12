@@ -30,6 +30,7 @@ func main() {
 		cfg.Email.APIKey,
 		cfg.Email.FromEmail,
 		cfg.Email.Endpoint,
+		int(cfg.Email.CodeExpiry.Minutes()),
 	)
 	if err != nil {
 		log.Fatalf("Failed to create email sender: %v", err)
