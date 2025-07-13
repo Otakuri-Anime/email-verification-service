@@ -24,7 +24,6 @@ type ElasticEmailSender struct {
 }
 
 func NewElasticEmailSender(apiKey, fromEmail, endpoint string, expiryMinutes int) (*ElasticEmailSender, error) {
-	// Загружаем шаблон
 	tmplContent, err := templateFS.ReadFile("template.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template: %w", err)
@@ -74,7 +73,6 @@ func (s *ElasticEmailSender) SendVerificationEmail(ctx context.Context, toEmail,
 		},
 	}
 
-	// Остальная часть функции остается без изменений
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		log.Printf("Email JSON marshal error: %v", err)

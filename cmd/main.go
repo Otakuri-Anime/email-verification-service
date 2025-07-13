@@ -22,7 +22,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Используем memory repository вместо Redis
+	// Используем memory repository вместо Redis (временно)
+	// TODO: перейти на Redis
 	verificationRepo := repository.NewMemoryVerificationRepository()
 
 	// Инициализация email сервиса
