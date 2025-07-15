@@ -59,7 +59,7 @@ func (s *ElasticEmailSender) SendVerificationEmail(ctx context.Context, toEmail,
 			"To": {toEmail},
 		},
 		"Content": map[string]interface{}{
-			"From":    s.fromEmail,
+			"From":    fmt.Sprintf("Otakuri Team <%s>", s.fromEmail),
 			"Subject": "Твой код подтверждения",
 			"Body": []map[string]string{
 				{
