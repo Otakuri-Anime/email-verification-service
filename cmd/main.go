@@ -14,6 +14,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 )
 
 func main() {
@@ -22,9 +24,22 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Используем memory repository вместо Redis (временно)
-	// TODO: перейти на Redis
-	verificationRepo := repository.NewMemoryVerificationRepository()
+	// Инициализация Redis клиента
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
+	// Проверка подключения к Redis
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
+	// Создаем Redis репозиторий
+	verificationRepo := repository.NewRedisVerificationRepository(redisClient)
 
 	// Инициализация email сервиса
 	emailSender, err := email.NewElasticEmailSender(
@@ -99,6 +114,11 @@ func main() {
 			if err := server.Close(); err != nil {
 				log.Fatalf("Force shutdown failed: %v", err)
 			}
+		}
+
+		// Закрываем соединение с Redis при завершении работы
+		if err := redisClient.Close(); err != nil {
+			log.Printf("Failed to close Redis connection: %v", err)
 		}
 	}
 
